@@ -1,0 +1,11 @@
+.App {
+  text-align: center;
+  width: fit-content;
+  height: fit-content;
+}
+
+.App-header {
+  font-size: 1rem;
+  text-wrap: nowrap;
+  padding: 4px;
+}

@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Asktively",
+  "version": "1.0.0",
+  "action": {
+    "default_popup": "index.html",
+    "default_icon": "temp_logo.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["file://*/*.pdf"],
+      "js": ["contentScript.js"]
+    }
+  ]
+}
