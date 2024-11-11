@@ -1,11 +1,63 @@
+:root {
+  --background-light: #f9f9f9;
+  --primary-dark: #bb2684;
+  --primary-light: #f9f9f9;
+  --secondary-dark: #7d6dad;
+  --text-dark: #2c2b27;
+  --text-light: #f9f9f9;
+
+
+  button {
+    min-width: 30%;
+    border-radius: 8px;
+    padding: 8px 16px;
+    border: none;
+    color: var(--text-light);
+    background-color: var(--primary-dark);
+    cursor: pointer;
+  }
+
+  button:hover {
+    background-color: var(--secondary-dark);
+  }
+}
+
 .App {
   text-align: center;
-  width: fit-content;
-  height: fit-content;
+  width: 500px;
+  min-height: fit-content;
+
+  padding: 16px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .App-header {
   font-size: 1rem;
   text-wrap: nowrap;
-  padding: 4px;
+}
+
+.fade-enter, .fade-exit {
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.fade-enter-active, .fade-exit-active {
+  opacity: 1;
+}
+
+.loader {
+  width: 50px;
+  height: 50px;
+  /* border: 5px solid #f3f3f3; */
+  border-top: 5px solid var(--secondary-dark);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

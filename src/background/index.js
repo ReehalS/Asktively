@@ -200,7 +200,7 @@ ANSWER: 2.\n`,
 
 const typeInstructions= typeInstructions2;
 
-chrome.runtime.onInstalled.addListener(async () => {
+const generateQuestions = async () => {
     const { available } = await ai.languageModel.capabilities();
     const parsedData = {
         "Multiple Choice": [],
@@ -292,10 +292,11 @@ ${content}`;
             }
         }
     }
-});
+}
 
 
 
+export { generateQuestions };
 /* THINGS TO KEEP THE SAME
 
 const types = ["Multiple Choice", "True or False", "Fill In the Blanks", "Short Answer"];
