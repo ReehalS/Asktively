@@ -6,6 +6,7 @@ This project uses Manifest (version 3), React.js and Webpack.
 
 ### Run Extension Locally:
 - Use the terminal to run `npm i` when you first clone this repository.
+- Run `nodemon --exec 'npm run build'` to automatically build the React app during dev.
 - Use the terminal to run `npm run build` to update `dist` with your changes.
 - Navigate to `chrome://extensions` on Google Chrome.
 - Click on `Load unpacked` button and select the `dist` folder of this repository.
