@@ -192,52 +192,58 @@ OPTION: 1. This is the first option.
 OPTION: 2. This is the second option.
 OPTION: 3. This is the third option.
 OPTION: 4. This is the fourth option.
-ANSWER: 2`,
-    `After the "ANSWER: " text, output "TRUE" or "FALSE" in the same line depending on what the answer is. The answer should only be "TRUE" or "FALSE". Do not make answers that are short answer or fill in the blanks questions.`,
-    `Leave 3 underscores where the blank portion of the question is. Do not write the answer in the same line as the question.`,
-    `The minimum answer length should be 20 words and maximum answer length should be 50 words.`
+ANSWER: 2.\n`,
+    `After the "ANSWER: " text, output "TRUE" or "FALSE" in the same line depending on what the answer is. The answer should only be "TRUE" or "FALSE". Do not make questions that are short answer or fill in the blanks questions.`,
+    `Leave 3 underscores where the blank portion of the question is. Do not write the answer in the same line as the question. There must be exactly one blank per question.`,
+    `The minimum answer length for short answer questions should be 20 words.`
   ];
 
 const typeInstructions= typeInstructions2;
 
 chrome.runtime.onInstalled.addListener(async () => {
     const { available } = await ai.languageModel.capabilities();
-
+    const parsedData = {
+        "Multiple Choice": [],
+        "True or False": [],
+        "Fill In the Blanks": [],
+        "Short Answer": []
+    };
     function parseResponse(text, type) {
-        const parsedData = {
-            "Multiple Choice": [],
-            "True or False": [],
-            "Fill In the Blanks": [],
-            "Short Answer": []
-        };
 
         const questionTypes = {
-            "Multiple Choice": /QUESTION\s*\d+:\s*(.*?)\.?\s*(OPTION:\s*[0-4A-D]\:?[\s]*.*?)(?:\s*(OPTION:\s*[0-4A-D]\:?[\s]*.*?)){3}\s*(ANSWER:\s*[0-4A-D])\.?\s*(?:\n\s*)*/gs,
+            //"Multiple Choice": /QUESTION\s*\d+:\s*(.*?)\s*OPTION:\s*[0-1A]\s*(.*?)\s*OPTION:\s*[1-2B]\s*(.*?)\s*OPTION:\s*[2-3C]\s*(.*?)\s*OPTION:\s*[3-4D]\s*(.*?)\s*ANSWER:\s*([0-4A-D])/gs,
+            "Multiple Choice": /QUESTION\s*\d+:\s*(.*?)\s*OPTION:\s*[0-1A]\.?\s*(.*?)\s*OPTION:\s*[1-2B]\.?\s*(.*?)\s*OPTION:\s*[2-3C]\.?\s*(.*?)\s*OPTION:\s*[3-4D]\.?\s*(.*?)\s*ANSWER:\s*([1-4A-D])/gis,
             "True or False": /QUESTION\s*\d+:\s*(.*?)\.?\s*ANSWER:\s*(TRUE|FALSE)\.?(\s*(?:\n\s*)*)/gis,
-            "Fill In the Blanks": /QUESTION\s*\d+\s*(?:\n\s*)?:\s*(.*?)\s*(?:\n\s*)?(ANSWER:\s*(.*?))\.?\s*(?:\n\s*)*/gs,
-            "Short Answer": /QUESTION\s*\d+:\s*(.*?)\.?\s*ANSWER:\s*(.*?)\.?\s*(?:\n\s*)*/gs
+            "Fill In the Blanks": /QUESTION\s*\d+:\s*(.*?)\s*ANSWER:\s*([^\n]*)/gis,
+            "Short Answer": /QUESTION\s*\d+:\s*(.*?)\s*ANSWER:\s*([^\n]*)/gis,
+            "True or False Short Answer": /QUESTION\s*\d+:\s*(.*?)\.?\s*ANSWER:\s*((?!TRUE|FALSE)*)\.?\s*(?:\n\s*)*/gis
         };
-        
-        
         
         if (type === "Multiple Choice") {
             const matches = text.matchAll(questionTypes["Multiple Choice"]);
             for (const match of matches) {
                 const question = match[1].trim();
-                const options = match[2].split("OPTION: ").slice(1).map(opt => opt.trim());
-                const answer = options.findIndex(opt => match[3].includes(opt)) + 1;
+                const options = [match[2].trim(), match[3].trim(), match[4].trim(), match[5].trim()];
+                const answer = "1234ABCD".indexOf(match[6].trim()) % 4;
                 parsedData["Multiple Choice"].push({ question, options, answer });
             }
         } else if (type === "True or False") {
             const matches = text.matchAll(questionTypes["True or False"]);
             for (const match of matches) {
                 const question = match[1].trim();
-                const answer = match[2] === "TRUE";
+                const answer = match[2].toLowerCase() === "true";
                 parsedData["True or False"].push({ question, answer });
+            }
+            const shortAnsMatches = text.matchAll(questionTypes["True or False Short Answer"]);
+            for (const match of shortAnsMatches) {
+                const question = match[1].trim();
+                const answer = match[2].trim();
+                parsedData["Short Answer"].push({ question, answer });
             }
         } else if (type === "Fill In the Blanks") {
             const matches = text.matchAll(questionTypes["Fill In the Blanks"]);
             for (const match of matches) {
+                //console.log(match);
                 parsedData["Fill In the Blanks"].push({
                     question: match[1].trim(),
                     answer: match[2].trim()
@@ -246,6 +252,7 @@ chrome.runtime.onInstalled.addListener(async () => {
         } else if (type === "Short Answer") {
             const matches = text.matchAll(questionTypes["Short Answer"]);
             for (const match of matches) {
+                //console.log(match)
                 parsedData["Short Answer"].push({
                     question: match[1].trim(),
                     answer: match[2].trim()
@@ -276,6 +283,8 @@ ${content}`;
                     const parsedOutput = parseResponse(result, types[i]);
                     console.log(parsedOutput);
                     chrome.runtime.sendMessage({ type: types[i], output: parsedOutput });
+                } else{
+                    i--;
                 }
                 
             } catch (error) {
