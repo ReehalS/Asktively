@@ -201,7 +201,7 @@ ANSWER: 2.\n`,
 const typeInstructions= typeInstructions2;
 
 const generateQuestions = async () => {
-    const { available } = await ai.languageModel.capabilities();
+    const { available } = (await ai.languageModel.capabilities()).available();
     const parsedData = {
         "Multiple Choice": [],
         "True or False": [],
@@ -218,85 +218,98 @@ const generateQuestions = async () => {
             "Short Answer": /QUESTION\s*\d+:\s*(.*?)\s*ANSWER:\s*([^\n]*)/gis,
             "True or False Short Answer": /QUESTION\s*\d+:\s*(.*?)\.?\s*ANSWER:\s*((?!TRUE|FALSE)*)\.?\s*(?:\n\s*)*/gis
         };
-        
-        if (type === "Multiple Choice") {
-            const matches = text.matchAll(questionTypes["Multiple Choice"]);
-            for (const match of matches) {
-                const question = match[1].trim();
-                const options = [match[2].trim(), match[3].trim(), match[4].trim(), match[5].trim()];
-                const answer = "1234ABCD".indexOf(match[6].trim()) % 4;
-                parsedData["Multiple Choice"].push({ question, options, answer });
-            }
-        } else if (type === "True or False") {
-            const matches = text.matchAll(questionTypes["True or False"]);
-            for (const match of matches) {
-                const question = match[1].trim();
-                const answer = match[2].toLowerCase() === "true";
-                parsedData["True or False"].push({ question, answer });
-            }
-            const shortAnsMatches = text.matchAll(questionTypes["True or False Short Answer"]);
-            for (const match of shortAnsMatches) {
-                const question = match[1].trim();
-                const answer = match[2].trim();
-                parsedData["Short Answer"].push({ question, answer });
-            }
-        } else if (type === "Fill In the Blanks") {
-            const matches = text.matchAll(questionTypes["Fill In the Blanks"]);
-            for (const match of matches) {
-                //console.log(match);
-                parsedData["Fill In the Blanks"].push({
-                    question: match[1].trim(),
-                    answer: match[2].trim()
-                });
-            }
-        } else if (type === "Short Answer") {
-            const matches = text.matchAll(questionTypes["Short Answer"]);
-            for (const match of matches) {
-                //console.log(match)
-                parsedData["Short Answer"].push({
-                    question: match[1].trim(),
-                    answer: match[2].trim()
-                });
-            }
-        }
-        return parsedData[type];
-    }
 
-    if (available !== "no") {
-        for (let i = 0; i < types.length; i++) {
-            const promptString = `Make 10 ${types[i]} type questions. Make each question start with the text "QUESTION" followed by the question number and a colon. The question should be in the same line as "QUESTION" text. Make the Answer for each question start with the text "ANSWER: ". The answer should be in the same line as the "ANSWER: " text. ${typeInstructions[i]} The answer should come after the question and all the options for that question. Do not output anything except the questions, answers, and options. Always output in English. The content to make questions for starts below:
-${content}`;
-            const startTime = Date.now();
-            const session = await ai.languageModel.create({
-                systemPrompt: "Pretend to be a professor that is creating a question bank for a class."
-            });
-            const sessionCreateTime = Date.now();
-            try {
-                const result = await session.prompt(promptString);
-
-                const endTime = Date.now();
-                console.log(types[i]);
-                console.log(`sessionCreateTime = ${sessionCreateTime - startTime}. promptTime = ${endTime - sessionCreateTime}`);
-                console.log(result);
-                // Parse result and send structured data to frontend
-                if(result.length>0){
-                    const parsedOutput = parseResponse(result, types[i]);
-                    console.log(parsedOutput);
-                    chrome.runtime.sendMessage({ type: types[i], output: parsedOutput });
-                } else{
-                    i--;
+        let matches = [];
+        switch(type){
+            case "Multiple Choice":
+                matches = text.matchAll(questionTypes["Multiple Choice"]);
+                for (const match of matches) {
+                    const question = match[1].trim();
+                    const options = [match[2].trim(), match[3].trim(), match[4].trim(), match[5].trim()];
+                    const answer = "1234ABCD".indexOf(match[6].trim()) % 4;
+                    parsedData["Multiple Choice"].push({ question, options, answer });
                 }
-                
-            } catch (error) {
-                console.error('Error fetching from AI model:', error);
-            }
+                return parsedData[type];
+            
+            case "True or False": 
+                matches = text.matchAll(questionTypes["True or False"]);
+                for (const match of matches) {
+                    const question = match[1].trim();
+                    const answer = match[2].toLowerCase() === "true";
+                    parsedData["True or False"].push({ question, answer });
+                }
+                const shortAnsMatches = text.matchAll(questionTypes["True or False Short Answer"]);
+                for (const match of shortAnsMatches) {
+                    const question = match[1].trim();
+                    const answer = match[2].trim();
+                    parsedData["Short Answer"].push({ question, answer });
+                }
+                return parsedData[type];
+
+            case "Fill In the Blanks":
+                matches = text.matchAll(questionTypes["Fill In the Blanks"]);
+                for (const match of matches) {
+                    //console.log(match);
+                    parsedData["Fill In the Blanks"].push({
+                        question: match[1].trim(),
+                        answer: match[2].trim()
+                    });
+                }
+                return parsedData[type];
+
+            case "Short Answer":
+                matches = text.matchAll(questionTypes["Short Answer"]);
+                for (const match of matches) {
+                    //console.log(match)
+                    parsedData["Short Answer"].push({
+                        question: match[1].trim(),
+                        answer: match[2].trim()
+                    });
+                }
+                return parsedData[type];
+
+            default: 
+                throw new Error("Error: Unable to parse unexpected question type.")
         }
     }
+
+    if (available !== "readily")
+        return [];
+
+    const data = [];
+    for (let i = 0; i < types.length; i++) {
+        const promptString = `Make 10 ${types[i]} type questions. Make each question start with the text "QUESTION" followed by the question number and a colon. The question should be in the same line as "QUESTION" text. Make the Answer for each question start with the text "ANSWER: ". The answer should be in the same line as the "ANSWER: " text. ${typeInstructions[i]} The answer should come after the question and all the options for that question. Do not output anything except the questions, answers, and options. Always output in English. The content to make questions for starts below:
+${content}`;
+        const startTime = Date.now();
+        const session = await ai.languageModel.create({
+            systemPrompt: "Pretend to be a professor that is creating a question bank for a class."
+        });
+        const sessionCreateTime = Date.now();
+        try {
+            const result = await session.prompt(promptString);
+
+            const endTime = Date.now();
+            console.log(types[i]);
+            console.log(`sessionCreateTime = ${sessionCreateTime - startTime}. promptTime = ${endTime - sessionCreateTime}`);
+            console.log(result);
+            // Parse result and send structured data to frontend
+            if(result.length>0){
+                const parsedOutput = parseResponse(result, types[i]);
+                console.log(parsedOutput);
+                data.push({ type: types[i], output: parsedOutput });
+            } else{
+                i--;
+            }
+
+        } catch (error) {
+            console.error('Error fetching from AI model:', error);
+        }
+    }
+    return data;
 }
 
-
-
 export { generateQuestions };
+
 /* THINGS TO KEEP THE SAME
 
 const types = ["Multiple Choice", "True or False", "Fill In the Blanks", "Short Answer"];
