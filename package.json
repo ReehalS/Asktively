@@ -14,7 +14,8 @@
     "react-transition-group": "^4.4.5"
   },
   "scripts": {
-    "build": "webpack --config webpack.config.js"
+    "build": "webpack --config webpack.config.js",
+    "dev":"nodemon --exec 'npm run build'"
   },
   "eslintConfig": {
     "extends": [
