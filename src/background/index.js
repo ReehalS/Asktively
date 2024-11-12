@@ -201,7 +201,9 @@ ANSWER: 2.\n`,
 const typeInstructions= typeInstructions2;
 
 const generateQuestions = async () => {
-    const { available } = (await ai.languageModel.capabilities()).available();
+    const res = (await ai.languageModel.capabilities());
+    const available =res.available;
+    console.log(res)
     const parsedData = {
         "Multiple Choice": [],
         "True or False": [],
@@ -238,11 +240,13 @@ const generateQuestions = async () => {
                     const answer = match[2].toLowerCase() === "true";
                     parsedData["True or False"].push({ question, answer });
                 }
-                const shortAnsMatches = text.matchAll(questionTypes["True or False Short Answer"]);
-                for (const match of shortAnsMatches) {
-                    const question = match[1].trim();
-                    const answer = match[2].trim();
-                    parsedData["Short Answer"].push({ question, answer });
+                if(matches.length <10){
+                    const shortAnsMatches = text.matchAll(questionTypes["True or False Short Answer"]);
+                    for (const match of shortAnsMatches) {
+                        const question = match[1].trim();
+                        const answer = match[2].trim();
+                        parsedData["Short Answer"].push({ question, answer });
+                    }
                 }
                 return parsedData[type];
 
